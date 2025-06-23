@@ -1,0 +1,14 @@
+fastapi
+openai
+pinecone
+uvicorn[standard]
+sqlalchemy>=2.0
+aiosqlite
+pydantic>=2.6
+pydantic-settings
+httpx
+duffel-api
+email-validator
+python-dotenv
+asyncpg
+psycopg2-binary
