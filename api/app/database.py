@@ -1,29 +1,32 @@
 # app/database.py
 
+import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import NullPool
-from sqlalchemy import create_engine as create_sync_engine
 
-from app.config import DATABASE_URL, settings
+# 1) load DATABASE_URL (dotenv should have run before)
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+if not DATABASE_URL:
+    # fallback if somehow missing
+    DATABASE_URL = "sqlite:///db.sqlite3"
 
-Base = declarative_base()
-
-sync_url = DATABASE_URL.replace("+asyncpg", "")
-sync_engine = create_sync_engine(sync_url, echo=False)
-async_engine = create_async_engine(
+# 2) async engine only
+engine = create_async_engine(
     DATABASE_URL,
-    echo=settings.DEBUG,
-    poolclass=NullPool,
+    echo=os.getenv("DEBUG", "false").lower() == "true",
 )
 
+# 3) session factory
 AsyncSessionLocal = sessionmaker(
-    bind=async_engine,
+    bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
 )
 
-# Dependency
+# 4) Base for models
+Base = declarative_base()
+
+# 5) dependency
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
