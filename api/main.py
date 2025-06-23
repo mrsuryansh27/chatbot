@@ -1,28 +1,41 @@
+# api/main.py
+
+import os, sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import clients, leads, flights, chat, portal
+# make sure dotenv + imports work
+from dotenv import load_dotenv
+PROJECT_ROOT = os.path.dirname(__file__)
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+
+# ensure your code is on the path
+sys.path.insert(0, PROJECT_ROOT)
+
+from app.database import engine, Base
 from app.config import settings
+from app.routers import clients, leads, flights, chat, portal
 
-app = FastAPI(title="Chatbot SaaS", version="1.0")
+app = FastAPI()
 
-# CORS, etc.
+# CORS etc.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# mount all routers under /v1 except portal
+# include routers
+app.include_router(portal.router)
 app.include_router(clients.router, prefix="/v1/clients")
 app.include_router(leads.router, prefix="/v1/leads")
 app.include_router(flights.router, prefix="/v1/flights")
 app.include_router(chat.router, prefix="/v1/chat")
 
-# mount the public-facing portal endpoint
-app.include_router(portal.router)
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+# Create tables on startup, using the async engine
+@app.on_event("startup")
+async def on_startup():
+    # run synchronous metadata.create_all inside an async transaction
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
