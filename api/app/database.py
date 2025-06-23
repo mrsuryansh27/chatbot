@@ -9,11 +9,8 @@ from app.config import DATABASE_URL, settings
 
 Base = declarative_base()
 
-# 1) Prepare sync engine (no create_all here)
 sync_url = DATABASE_URL.replace("+asyncpg", "")
 sync_engine = create_sync_engine(sync_url, echo=False)
-
-# 2) Async engine for FastAPI
 async_engine = create_async_engine(
     DATABASE_URL,
     echo=settings.DEBUG,
